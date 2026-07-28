@@ -8,10 +8,11 @@ import click
 from pathlib import Path
 import lzma
 
+
 @click.command()
 @click.argument('tf')
 @click.option('-l', '--land',
-              default='auto',
+              default='mask',
               help='Scale of coastline (f, h, i, l, c or mask)',
               type=str,
               multiple=False)
@@ -38,7 +39,7 @@ def main(tf, land, start_time, end_time, margin):
             ds = xr.open_dataset(fd)
             ds.load()
     else:
-        ds = xr.open_dataset(tf)
+        ds = xr.open_dataset(tf, decode_timedelta=True)
 
     trajectory_names = None
     color = 'gray'

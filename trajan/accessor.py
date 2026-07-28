@@ -31,6 +31,10 @@ def detect_time_variable(ds, obs_dim):
         logger.warning(f'Returning time coordinate name: {time_variables}')
         return time_variables
 
+    if 'time' in ds.variables:
+        logger.warning(f'Returning variable "time", although missing standard_name: {time_variables}')
+        return 'time'
+
     raise ValueError("No time variable detected")
 
 

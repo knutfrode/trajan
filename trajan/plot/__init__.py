@@ -67,21 +67,31 @@ class Plot:
 
         ax = kwargs_d.pop('ax', None)
         crs = kwargs_d.pop('crs', None)
+        assert crs is None or ax is None, "Only one of `ax` and `crs` may be specified."
+        crs = crs if crs is not None else ccrs.Mercator()
+        self.gcrs = ccrs.PlateCarree(globe=crs.globe)
+
+        if ax is not None:
+            if isinstance(ax, cartopy.mpl.geoaxes.GeoAxes):
+                if ax.has_data() is True:
+                    logger.debug('Plotting to existing Cartopy axes')
+                    return ax
+            else:
+                logger.warning('Provided axes are not cartopy, replacing. Make sure to update ax handle provided as input')
+                subplotspec = ax.get_subplotspec()
+                fig = ax.figure
+                ax.remove()
+                ax = fig.add_subplot(subplotspec, projection=crs)
+
         margin = kwargs_d.pop('margin', .1)
         corners = kwargs_d.pop('corners', None)
         land = kwargs_d.pop('land', 'auto')
         figsize = kwargs_d.pop('figsize', 11)
-
-        assert crs is None or ax is None, "Only one of `ax` and `crs` may be specified."
-
-        if ax is not None:
-            logger.debug('axes already set up')
-            return ax
+        title = kwargs_d.pop('title', None)
 
         # It is not possible to change the projection of existing axes. The type of axes object returned
         # by `plt.axes` depends on the input projection.
 
-        # Create a new figure if none exists.
         if corners is None:
             lonmin = self.ds.traj.tlon.min() - margin
             lonmax = self.ds.traj.tlon.max() + margin
@@ -93,7 +103,8 @@ class Plot:
             latmin = corners[2]
             latmax = corners[3]
 
-        if len(plt.get_fignums()) == 0:
+        # Create a new figure if none exists.
+        if ax is None and len(plt.get_fignums()) == 0:
             logger.debug('Creating new figure and axes..')
             meanlat = (latmin + latmax) / 2
             aspect_ratio = float(latmax - latmin) / (float(lonmax - lonmin))
@@ -103,19 +114,15 @@ class Plot:
                 fig = plt.figure(figsize=(figsize / aspect_ratio, figsize))
             else:
                 fig = plt.figure(figsize=(figsize, figsize * aspect_ratio))
-
-        else:
+        elif ax is None:
             fig = plt.gcf()
             if len(fig.axes) > 0:
-                logger.debug('Axes already exist on existing figure.')
+                logger.debug('Axes already exist on existing figure')
                 return fig.gca()
-            else:
-                logger.debug('Figure exists, setting up axes.')
 
-        crs = crs if crs is not None else ccrs.Mercator()
-        self.gcrs = ccrs.PlateCarree(globe=crs.globe)
+        if ax is None:
+            ax = fig.add_subplot(111, projection=crs)
 
-        ax = fig.add_subplot(111, projection=crs)
         ax.set_extent([lonmin, lonmax, latmin, latmax], crs=self.gcrs)
         ax.gridlines(self.gcrs, draw_labels=['left', 'bottom'])
 
@@ -128,6 +135,9 @@ class Plot:
                      fast=(land == 'mask' or land == 'fast'),
                      lscale=land,
                      globe=crs.globe)
+
+        if title is not None:
+            ax.set_title(title)
 
         return ax
 

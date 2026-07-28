@@ -433,9 +433,9 @@ class Traj:
         transform, set_crs
         """
         if len(self.ds.cf.grid_mapping_names) == 0:
-            logger.debug(
-                f'No grid-mapping specified, checking if coordinates are lon/lat..'
-            )
+            #logger.debug(
+            #    f'No grid-mapping specified, checking if coordinates are lon/lat..'
+            #)
             if self.tx.name == 'lon' or self.tx.name == 'longitude':
                 # assume this is in latlon projection
                 return self.__gcrs__
@@ -932,11 +932,8 @@ class Traj:
 
         from scipy.spatial import ConvexHull
 
-        lon = self.ds.lon
-        lat = self.ds.lat
-        if 'status' in self.ds.variables:
-            lon = lon.where(self.ds.status == 0)
-            lat = lat.where(self.ds.status == 0)
+        lon = self.ds.traj.tlon.values.ravel()
+        lat = self.ds.traj.tlat.values.ravel()
         fin = np.isfinite(lat + lon)
         if np.sum(fin) <= 3:
             return None
@@ -980,12 +977,10 @@ class Traj:
         """
         from scipy.spatial import ConvexHull
 
-        if 'status' in self.ds.variables:
-            lon = self.ds.lon.where(self.ds.status == 0)  # OpenDrift specific
-            lat = self.ds.lat.where(self.ds.status == 0)
-        else:
-            lon = self.ds.lon.where(np.isfinite(self.ds.lon) is True)
-            lat = self.ds.lat.where(np.isfinite(self.ds.lat) is True)
+        lon = self.ds.traj.tlon.values.ravel()
+        lat = self.ds.traj.tlat.values.ravel()
+        lon = lon[np.isfinite(lon)]
+        lat = lat[np.isfinite(lat)]
 
         fin = np.isfinite(lat + lon)
         if np.sum(fin) <= 3:
@@ -996,10 +991,10 @@ class Traj:
             return xr.DataArray(0,
                                 name="convex_hull_area",
                                 attrs={"units": "m2"})
-        lat = lat.where(fin)
-        lon = lon.where(fin)
+        lat = lat[fin]
+        lon = lon[fin]
         aea = pyproj.Proj(
-            f'+proj=aea +lat_0={lat.mean().values} +lat_1={lat.min().values} +lat_2={lat.max().values} +lon_0={lon.mean().values} +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs'
+            f'+proj=aea +lat_0={lat.mean()} +lat_1={lat.min()} +lat_2={lat.max()} +lon_0={lon.mean()} +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs'
         )
         x, y = aea(lat, lon, inverse=False)
         fin = np.isfinite(x + y)

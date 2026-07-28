@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import trajan as ta
 
+
 #%%
 # Demonstrating analysis of a trajecory_dataset from GNOME in the nc_particles format
 # https://noaa-orr-erd.github.io/nc_particles/nc_particle_standard.html
@@ -45,4 +46,4 @@ plt.show()
 
 #%%
 # Basic animation
-ds_ortho.traj.animate().set_title('nc_particles sample dataset').show()
+ds_ortho.traj.animate(land=None).set_title('nc_particles sample dataset').show()
